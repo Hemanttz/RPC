@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PV Tool Training - Myntra Rejoy Quality Check Training Application for Return Center Operations">
+  <title>Rejoy UI - PV Tool Training</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- =============== SCREEN 1: LOGIN =============== -->
+  <div id="login-screen" class="screen active">
+    <div class="login-card">
+      <!-- Myntra Logo SVG -->
+      <svg class="myntra-logo" viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 36 L14 4 L24 28 L34 4 L40 36" stroke="#ff3f6c" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="14" cy="4" r="3" fill="#ff9f00"/>
+        <circle cx="34" cy="4" r="3" fill="#ff3f6c"/>
+      </svg>
+      <h2>rejoy</h2>
+      <p class="subtitle">Powered by Myntra</p>
+      <button class="login-btn" id="btn-use-email" onclick="showScreen('email-login-screen')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+        Use Email And Password
+      </button>
+      <button class="login-btn" id="btn-google-login" onclick="showScreen('email-login-screen')">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Login In With Google
+      </button>
+    </div>
+  </div>
+
+  <!-- =============== SCREEN 2: EMAIL LOGIN =============== -->
+  <div id="email-login-screen" class="screen">
+    <div class="login-card email-login-card">
+      <span class="back-arrow" onclick="showScreen('login-screen')">←</span>
+      <div class="header-section">
+        <svg class="myntra-logo" viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 36 L14 4 L24 28 L34 4 L40 36" stroke="#ff3f6c" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="14" cy="4" r="3" fill="#ff9f00"/><circle cx="34" cy="4" r="3" fill="#ff3f6c"/>
+        </svg>
+        <h2>rejoy</h2>
+        <p class="subtitle">Powered by Myntra</p>
+      </div>
+      <div id="login-error" style="color:#d32f2f;font-size:13px;margin-bottom:12px;display:none"></div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="">
+      </div>
+      <div class="show-password">
+        <input type="checkbox" id="show-pass-cb" onchange="togglePassword()"> 
+        <label for="show-pass-cb">Show Password</label>
+      </div>
+      <button class="btn-login" id="btn-do-login" onclick="doLogin()">LOG IN</button>
+      <div class="forgot-password"><a href="#" onclick="showScreen('register-screen');return false">New user? Register here</a></div>
+    </div>
+  </div>
+
+  <!-- =============== SCREEN 2B: REGISTRATION =============== -->
+  <div id="register-screen" class="screen">
+    <div class="login-card email-login-card">
+      <span class="back-arrow" onclick="showScreen('email-login-screen')">←</span>
+      <div class="header-section">
+        <svg class="myntra-logo" viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 36 L14 4 L24 28 L34 4 L40 36" stroke="#ff3f6c" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="14" cy="4" r="3" fill="#ff9f00"/><circle cx="34" cy="4" r="3" fill="#ff3f6c"/>
+        </svg>
+        <h2>Register</h2>
+        <p class="subtitle">Create your training account</p>
+      </div>
+      <div id="reg-msg" style="font-size:13px;margin-bottom:12px;display:none"></div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" placeholder="">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="">
+      </div>
+      <button class="btn-login" onclick="doRegister()">REGISTER</button>
+      <div style="text-align:center;margin-top:16px">
+        <p style="font-size:13px;color:#888;margin-bottom:8px">Or bulk register via CSV</p>
+        <input type="file" id="csv-upload" accept=".csv" style="display:none" onchange="uploadCSV(this)">
+        <button class="btn-login" style="background:#3f51b5" onclick="document.getElementById('csv-upload').click()">UPLOAD CSV</button>
+        <p style="font-size:11px;color:#aaa;margin-top:8px">CSV format: email,password,name</p>
+      </div>
+      <div id="csv-result" style="font-size:12px;margin-top:12px;display:none"></div>
+    </div>
+  </div>
+
+  <!-- =============== APP SHELL =============== -->
+  <div id="app-shell">
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+      <div class="top-nav-left">
+        <button class="hamburger" id="hamburger-btn">☰</button>
+        <span class="nav-brand">rejoy</span>
+        <span class="nav-breadcrumb"><span>Home</span> › QualityCheck</span>
+      </div>
+      <div class="top-nav-right">
+        <span id="session-timer" style="background:#e8eaf6;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;margin-right:8px">⏱ 00:00</span>
+        <span id="product-counter" style="background:#e8f5e9;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;margin-right:8px">0/50</span>
+        <span class="user-icon">👤</span>
+        <span id="nav-user-email">ca.3450435@myntra.com</span>
+        <button onclick="doLogout()" style="margin-left:8px;background:none;border:1px solid #ddd;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px">Logout</button>
+      </div>
+    </nav>
+
+    <!-- Notification Banner -->
+    <div id="app-banner" class="banner">
+      <span class="banner-text"><span class="banner-icon"></span> <span id="banner-msg"></span></span>
+      <button class="banner-close" onclick="closeBanner()">✕</button>
+    </div>
+
+    <!-- Body: Sidebar + Main -->
+    <div class="app-body">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-icon" title="Quality Check" onclick="showView('qc')">🔗</div>
+        <div class="sidebar-icon" title="Dashboard" onclick="showView('dashboard')">📊</div>
+        <div class="sidebar-icon" title="Export Data" onclick="showView('export')">📤</div>
+        <div class="sidebar-icon" title="Add Products" onclick="showView('add-products')">➕</div>
+        <div class="sidebar-icon" title="Link">🔗</div>
+        <div class="sidebar-icon" title="Link">🔗</div>
+        <div class="sidebar-icon" title="Link">🔗</div>
+        <div class="sidebar-icon" title="Link">🔗</div>
+        <div class="sidebar-icon" title="Link">🔗</div>
+        <div class="sidebar-icon" title="Link">🔗</div>
+        <div class="sidebar-icon" title="Link">🔗</div>
+        <div class="sidebar-icon" title="Chat">💬</div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content" id="main-content">
+        <div class="relative">
+          <!-- QC Header -->
+          <div class="qc-header">
+            <h1>Quality Check</h1>
+            <div class="qc-header-right">
+              <span id="location-info" class="hidden">Bilaspur RPC / BILSQCPR-1-1-1-142/ <span id="type-label">RETURN</span></span>
+              <button class="qc-header-right .change-btn hidden" id="change-desk-btn" onclick="showWarehouseModal()">CHANGE</button>
+            </div>
+          </div>
+
+          <!-- QC Body -->
+          <div class="qc-body" id="qc-body">
+            <!-- Input Carton Section -->
+            <div id="input-carton-section">
+              <div class="qc-section-label">Input Carton <span id="carton-count" class="hidden">(0)</span></div>
+              <div class="qc-scan-field">
+                <span class="barcode-icon">📊</span>
+                <input type="text" id="scan-carton-input" placeholder="Scan Carton Barcode" onkeypress="handleCartonScan(event)">
+              </div>
+              <div class="close-carton-link hidden" id="close-carton-link" onclick="closeCarton()">CLOSE CARTON</div>
+            </div>
+
+            <!-- Change Output Carton link -->
+            <div class="change-output-carton hidden" id="change-output-btn" onclick="showOutputCartonModal()">
+              📦 CHANGE OUTPUT CARTON
+            </div>
+
+            <!-- Tracking ID / Return ID row -->
+            <div class="scan-row hidden" id="scan-row">
+              <div class="scan-field-group">
+                <label>Tracking ID</label>
+                <div class="qc-scan-field">
+                  <span class="barcode-icon">📊</span>
+                  <input type="text" id="scan-tracking-input" placeholder="Scan/Type Tracking Barcode" onkeypress="handleTrackingScan(event)">
+                </div>
+              </div>
+              <div class="scan-field-group">
+                <label>Return ID</label>
+                <div class="qc-scan-field">
+                  <span class="barcode-icon">📊</span>
+                  <input type="text" id="scan-return-input" placeholder="Scan Return ID">
+                </div>
+              </div>
+            </div>
+
+            <!-- Product Detail Area -->
+            <div id="product-area" class="hidden">
+              <div class="product-section">
+                <div class="product-left">
+                  <div class="product-brand-logo">
+                    <svg class="m-logo" viewBox="0 0 48 40"><path d="M8 36 L14 4 L24 28 L34 4 L40 36" stroke="#ff3f6c" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="4" r="3" fill="#ff9f00"/><circle cx="34" cy="4" r="3" fill="#ff3f6c"/></svg>
+                    <span class="rrc-badge" id="status-badge">RRC</span>
+                  </div>
+                  <div>
+                    <div class="return-id-label">Return ID: <span id="display-return-id">100151795729</span></div>
+                    <div class="product-image-container" onclick="openImageModal()" style="cursor:pointer">
+                      <button class="gallery-arrow gallery-arrow-left" id="gallery-prev" onclick="event.stopPropagation(); galleryPrev()">&#8249;</button>
+                      <img src="product.png" alt="Product Image" id="product-img">
+                      <button class="gallery-arrow gallery-arrow-right" id="gallery-next" onclick="event.stopPropagation(); galleryNext()">&#8250;</button>
+                      <div class="gallery-dots" id="gallery-dots">
+                        <span class="gallery-dot active"></span>
+                        <span class="gallery-dot"></span>
+                        <span class="gallery-dot"></span>
+                      </div>
+                      <div class="enlarge-label">🔍 Click to enlarge this image.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="product-details">
+                  <span class="inventory-badge" id="inventory-badge">INVENTORY</span>
+                  <span class="qc-pass-badge hidden" id="qc-pass-badge-top">QC PASS</span>
+                  <div class="brand-name" id="prod-brand">INCLUD</div>
+                  <div class="product-name" id="prod-name">INCLUD Girls Printed Shoulder Straps Top With Skirt &amp; Waistcoat</div>
+                  <table class="detail-table">
+                    <tr><td>Item Barcode:</td><td id="prod-barcode">102694434314</td></tr>
+                    <tr><td>Myntra SKU:</td><td id="prod-sku">ICCDCLST109279663</td></tr>
+                    <tr><td>Style ID:</td><td id="prod-style">33819868</td></tr>
+                    <tr><td>Article No:</td><td id="prod-article">7532361506</td></tr>
+                    <tr><td>Size:</td><td id="prod-size">7-8 Y</td></tr>
+                    <tr><td>MRP:</td><td id="prod-mrp">₹1849</td></tr>
+                    <tr><td>Color:</td><td id="prod-color">White</td></tr>
+                    <tr id="prod-desc-row"><td>Description:</td><td id="prod-desc" style="max-width:260px;font-size:11px;line-height:1.4">—</td></tr>
+                    <tr id="serve-count-row"><td>Item Serve Count:</td><td id="prod-serve-count">1</td></tr>
+                  </table>
+                  <div class="item-notices">
+                    <span class="notice not-eligible" id="brand-tag-eligibility">⊘ ITEM IS NOT ELIGIBLE FOR BRAND TAG REPLACEMENT</span>
+                    <span class="notice additional-info">ⓘ ADDITIONAL ITEM INFORMATION: CLICK HERE ›</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Return Details -->
+              <div class="return-details">
+                <h4>Return Details</h4>
+                <div class="return-details-grid">
+                  <div class="return-detail-item"><label>Return ID:</label><span>100151795729</span></div>
+                  <div class="return-detail-item"><label>Return Type:</label><span>NORMAL</span></div>
+                  <div class="return-detail-item"><label>Return Mode:</label><span>OPEN_BOX_PICKUP</span></div>
+                  <div class="return-detail-item"><label>Return Status:</label><span>RRC</span></div>
+                  <div class="return-detail-item"><label>Created Date:</label><span>15/04/2026</span></div>
+                  <div class="return-detail-item"><label>Refund Date:</label><span>16/04/2026</span></div>
+                  <div class="return-detail-item"><label>Received Date:</label><span>22/04/2026</span></div>
+                  <div class="return-detail-item"><label>Restock Date:</label><span>22/04/2026</span></div>
+                  <div class="return-detail-item"><label>Logistics Status:</label><span>DELIVERED_TO_SELLER</span></div>
+                  <div class="return-detail-item"><label>DC:</label><span>NA</span></div>
+                  <div class="return-detail-item"><label>Source Warehouse:</label><span></span></div>
+                  <div class="return-detail-item"><label>Received Warehouse:</label><span></span></div>
+                </div>
+              </div>
+
+              <!-- Comments -->
+              <div class="comments-section">
+                <span class="label">Comments</span>
+                <span class="show-comments">CLICK TO SHOW COMMENTS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== DASHBOARD VIEW ===== -->
+        <div id="dashboard-view" class="hidden" style="padding:24px">
+          <h1 style="font-size:22px;font-weight:700;margin-bottom:20px">Training Dashboard</h1>
+          <!-- Overall Stats -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px" id="my-stats-cards">
+            <div class="stat-card"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Products Done</div></div>
+            <div class="stat-card"><div class="stat-value" id="stat-avg">0s</div><div class="stat-label">Avg Time</div></div>
+            <div class="stat-card"><div class="stat-value" id="stat-fastest">0s</div><div class="stat-label">Fastest</div></div>
+            <div class="stat-card"><div class="stat-value" id="stat-total-time">0s</div><div class="stat-label">Total Time</div></div>
+          </div>
+          <!-- Leaderboard -->
+          <h2 style="font-size:16px;font-weight:700;margin-bottom:12px">All Trainees Leaderboard</h2>
+          <table class="dashboard-table" id="leaderboard-table">
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Warehouse</th><th>Products</th><th>Carton Scan Start</th><th>Carton Scan End</th><th>Total Scan Duration</th><th>PV Accuracy</th></tr></thead>
+            <tbody id="leaderboard-body"></tbody>
+          </table>
+          <!-- Overall PV History -->
+          <h2 style="font-size:16px;font-weight:700;margin:24px 0 12px">Overall PV History</h2>
+          <table class="dashboard-table" id="history-table">
+            <thead><tr><th>#</th><th>Trainee</th><th>Product</th><th>Brand</th><th>Category</th><th>Time (s)</th><th>GTIN</th><th>Issue</th><th>QC Result</th></tr></thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+
+        <!-- ===== EXPORT VIEW ===== -->
+        <div id="export-view" class="hidden" style="padding:24px">
+          <h1 style="font-size:22px;font-weight:700;margin-bottom:20px">Export Data</h1>
+          <div class="export-section" id="export-section">
+            <div class="export-filters">
+              <div class="export-filter-field">
+                <label>Date From</label>
+                <input type="date" id="export-date-from">
+              </div>
+              <div class="export-filter-field">
+                <label>Date To</label>
+                <input type="date" id="export-date-to">
+              </div>
+              <div class="export-filter-field">
+                <label>Name</label>
+                <input type="text" id="export-name" placeholder="Name">
+              </div>
+              <div class="export-filter-field">
+                <label>Carton Code</label>
+                <input type="text" id="export-carton-code" placeholder="Carton Code">
+              </div>
+              <div class="export-filter-field">
+                <label>Warehouse</label>
+                <select id="export-warehouse">
+                  <option value="">All Warehouses</option>
+                  <option value="bilaspur">Bilaspur RPC</option>
+                  <option value="mumbai">Mumbai RPC</option>
+                  <option value="delhi">Delhi RPC</option>
+                  <option value="bangalore">Bangalore RPC</option>
+                </select>
+              </div>
+              <div class="export-filter-actions">
+                <button class="btn-filter" id="btn-export-filter" onclick="filterExportData()">Filter</button>
+                <button class="btn-export-csv" id="btn-export-csv" onclick="downloadExportCSV()">⬇ Export CSV</button>
+              </div>
+            </div>
+            <div class="export-result-info" id="export-result-info" style="display:none">
+              <span id="export-result-count"></span>
+            </div>
+            <div class="export-table-wrapper">
+              <table class="dashboard-table" id="export-table">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Name</th><th>Warehouse</th><th>Carton Code</th>
+                    <th>Product</th><th>Brand</th><th>Category</th>
+                    <th>Started At</th><th>Completed At</th><th>Time (s)</th>
+                    <th>GTIN</th><th>Issue</th><th>QC Result</th><th>Accuracy</th>
+                  </tr>
+                </thead>
+                <tbody id="export-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== ADD PRODUCTS VIEW ===== -->
+        <div id="add-products-view" class="hidden" style="padding:24px">
+          <div class="add-products-page">
+            <!-- Page Header -->
+            <div class="add-products-header">
+              <div class="add-products-header-left">
+                <h1>Add Products</h1>
+                <p class="add-products-subtitle">Upload a CSV file to bulk-add products to the database</p>
+              </div>
+              <div class="add-products-header-right">
+                <div class="products-count-badge">
+                  <span class="count-icon">📦</span>
+                  <div>
+                    <div class="count-value" id="ap-product-count">—</div>
+                    <div class="count-label">Products in DB</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Admin Auth Section -->
+            <div class="add-products-section" id="admin-auth-section">
+              <div class="section-header">
+                <span class="section-number">1</span>
+                <h3>Admin Authentication</h3>
+              </div>
+              <p class="section-desc">Enter admin credentials to authorize product upload.</p>
+              <div class="admin-form">
+                <div class="admin-form-row">
+                  <div class="admin-form-field">
+                    <label for="admin-username">Admin Username</label>
+                    <input type="text" id="admin-username" placeholder="Enter admin username" autocomplete="off">
+                  </div>
+                  <div class="admin-form-field">
+                    <label for="admin-password">Admin Password</label>
+                    <div class="password-field-wrap">
+                      <input type="password" id="admin-password" placeholder="Enter admin password" autocomplete="off">
+                      <button class="toggle-pass-btn" onclick="toggleAdminPassword()" type="button">👁</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CSV Upload Section -->
+            <div class="add-products-section">
+              <div class="section-header">
+                <span class="section-number">2</span>
+                <h3>Upload CSV File</h3>
+              </div>
+              <p class="section-desc">Select a CSV file containing product data. The file must have these mandatory columns: <strong>tracking_id</strong>, <strong>myntra_sku</strong>, <strong>item_barcode</strong>, <strong>style_id</strong>, <strong>article_no</strong>.</p>
+
+              <div class="csv-upload-area" id="csv-drop-zone">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Drag & drop your CSV file here</div>
+                <div class="upload-or">or</div>
+                <input type="file" id="product-csv-upload" accept=".csv" style="display:none" onchange="handleProductCSVSelect(this)">
+                <button class="btn-choose-file" onclick="document.getElementById('product-csv-upload').click()">Choose File</button>
+                <div class="upload-file-info hidden" id="upload-file-info">
+                  <span class="file-icon">📎</span>
+                  <span id="upload-file-name">—</span>
+                  <button class="file-remove" onclick="clearProductCSV()">✕</button>
+                </div>
+              </div>
+
+              <button class="btn-upload-products" id="btn-upload-products" onclick="uploadProductCSV()">
+                <span class="btn-icon">⬆</span> Upload & Add Products
+              </button>
+            </div>
+
+            <!-- Upload Result -->
+            <div class="add-products-result hidden" id="upload-result">
+              <div class="result-header" id="upload-result-header">
+                <span class="result-icon" id="upload-result-icon">✅</span>
+                <span id="upload-result-title">Upload Successful</span>
+              </div>
+              <div class="result-body" id="upload-result-body"></div>
+            </div>
+
+            <!-- Delete Product Section -->
+            <div class="add-products-section">
+              <div class="section-header">
+                <span class="section-number">3</span>
+                <h3>Delete Product</h3>
+              </div>
+              <p class="section-desc">Remove a product and its associated logs from the database by entering its Tracking ID.</p>
+              <div class="admin-form">
+                <div class="admin-form-row">
+                  <div class="admin-form-field">
+                    <label for="delete-tracking-id">Tracking ID</label>
+                    <input type="text" id="delete-tracking-id" placeholder="Enter Tracking ID">
+                  </div>
+                </div>
+                <button class="btn-upload-products" style="background:#e53935;margin-top:16px" onclick="deleteProductByTrackingId()">
+                  <span class="btn-icon">🗑️</span> Delete Product
+                </button>
+              </div>
+              <!-- Delete Result -->
+              <div class="add-products-result hidden" id="delete-result" style="margin-top:16px;background:#ffebee;border-color:#ef9a9a">
+                <div class="result-header" id="delete-result-header">
+                  <span class="result-icon" id="delete-result-icon">✅</span>
+                  <span id="delete-result-title" style="color:#c62828">Delete Successful</span>
+                </div>
+                <div class="result-body" id="delete-result-body" style="color:#b71c1c"></div>
+              </div>
+            </div>
+
+            <!-- CSV Column Reference -->
+            <div class="add-products-section csv-reference">
+              <div class="section-header">
+                <span class="section-number">ℹ</span>
+                <h3>CSV Column Reference</h3>
+              </div>
+              <p class="section-desc">Your CSV can include the following columns. The 5 mandatory columns are: <strong>tracking_id</strong>, <strong>myntra_sku</strong>, <strong>item_barcode</strong>, <strong>style_id</strong>, <strong>article_no</strong>. All other columns are optional.</p>
+              <div class="csv-columns-table-wrap">
+                <table class="csv-columns-table">
+                  <thead>
+                    <tr>
+                      <th>Column Name</th>
+                      <th>Required</th>
+                      <th>Description</th>
+                      <th>Default</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>tracking_id</code></td><td><span class="req-yes">Yes</span></td><td>Tracking ID (e.g., MYSR...)</td><td>—</td></tr>
+                    <tr><td><code>myntra_sku</code></td><td><span class="req-yes">Yes</span></td><td>Myntra SKU code</td><td>—</td></tr>
+                    <tr><td><code>item_barcode</code></td><td><span class="req-yes">Yes</span></td><td>Item barcode number</td><td>—</td></tr>
+                    <tr><td><code>style_id</code></td><td><span class="req-yes">Yes</span></td><td>Style ID</td><td>—</td></tr>
+                    <tr><td><code>article_no</code></td><td><span class="req-yes">Yes</span></td><td>Article number</td><td>—</td></tr>
+                    <tr><td><code>brand</code></td><td><span class="req-no">No</span></td><td>Product brand name</td><td>Empty</td></tr>
+                    <tr><td><code>name</code></td><td><span class="req-no">No</span></td><td>Product name / title</td><td>Empty</td></tr>
+                    <tr><td><code>size</code></td><td><span class="req-no">No</span></td><td>Product size (e.g., M, L, 7-8 Y)</td><td>Empty</td></tr>
+                    <tr><td><code>mrp</code></td><td><span class="req-no">No</span></td><td>Maximum retail price</td><td>0</td></tr>
+                    <tr><td><code>color</code></td><td><span class="req-no">No</span></td><td>Product color</td><td>Empty</td></tr>
+                    <tr><td><code>category</code></td><td><span class="req-no">No</span></td><td>Product category</td><td>Empty</td></tr>
+                    <tr><td><code>description</code></td><td><span class="req-no">No</span></td><td>Product description</td><td>Empty</td></tr>
+                    <tr><td><code>image_filename</code></td><td><span class="req-no">No</span></td><td>Primary image URL or filename</td><td>Empty</td></tr>
+                    <tr><td><code>image_filename_2</code></td><td><span class="req-no">No</span></td><td>Second image URL or filename</td><td>Empty</td></tr>
+                    <tr><td><code>image_filename_3</code></td><td><span class="req-no">No</span></td><td>Third image URL or filename</td><td>Empty</td></tr>
+                    <tr><td><code>return_type</code></td><td><span class="req-no">No</span></td><td>Return type</td><td>NORMAL</td></tr>
+                    <tr><td><code>return_mode</code></td><td><span class="req-no">No</span></td><td>Return mode</td><td>OPEN_BOX_PICKUP</td></tr>
+                    <tr><td><code>eligible_brand_tag</code></td><td><span class="req-no">No</span></td><td>Brand tag eligible (0 or 1)</td><td>0</td></tr>
+                    <tr><td><code>expected_qc_result</code></td><td><span class="req-no">No</span></td><td>Expected QC result (pass/fail)</td><td>Empty</td></tr>
+                    <tr><td><code>expected_issue</code></td><td><span class="req-no">No</span></td><td>Expected issue type</td><td>no-issues</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="right-panel" id="right-panel">
+        <!-- GTIN Check (Step 1/2) -->
+        <div id="gtin-panel">
+          <div class="right-panel-header">
+            <h4>GTIN CHECK</h4>
+            <span class="step-label">Step - 1/2</span>
+          </div>
+          <div class="gtin-section">
+            <h5>GTIN Required</h5>
+            <p>Scan GTIN from the brand tag</p>
+            <div class="gtin-scan-field">
+              <span class="barcode-icon">📊</span>
+              <input type="text" id="scan-gtin-input" placeholder="Scan GTIN Code" onkeypress="handleGtinScan(event)">
+            </div>
+          </div>
+          <div class="alt-options">
+            <div class="alt-option-btn" id="btn-brand-tag-na" onclick="brandTagNotAvailable()">
+              ⊘ Brand tag not available? <span class="click-here">CLICK HERE</span>
+            </div>
+            <div class="alt-option-btn" id="btn-return-not-received" onclick="returnNotReceived()">
+              📦 Return Item not received? <span class="click-here">CLICK HERE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Other Checks (Step 2/2) -->
+        <div id="other-checks-panel" class="hidden">
+          <div class="right-panel-header">
+            <button class="back-btn" onclick="goBackToGtin()">←</button>
+            <h4>OTHER CHECKS</h4>
+            <span class="gtin-badge pass" id="gtin-result-badge">GTIN PASS</span>
+            <span class="step-label">Step - 2/2</span>
+          </div>
+
+          <div class="issue-radio-list">
+            <label class="issue-radio-item"><span>Wrong Product Received</span><input type="radio" name="issue-type" value="wrong-product"></label>
+            <label class="issue-radio-item"><span>Damaged / Cut / Torn / Hole / Abused</span><input type="radio" name="issue-type" value="damaged"></label>
+            <label class="issue-radio-item"><span>Fake / Garbage Product</span><input type="radio" name="issue-type" value="fake"></label>
+          </div>
+
+          <div class="issue-icons-grid" id="issue-icons-grid">
+            <div class="issue-icon-btn" data-issue="missing-part" onclick="selectIssue(this)">
+              <div class="icon-img">👕</div><div class="icon-label">Missing Part</div>
+            </div>
+            <div class="issue-icon-btn" data-issue="pattern-shade" onclick="selectIssue(this)">
+              <div class="icon-img">🎨</div><div class="icon-label">Pattern/Shade Mismatch</div>
+            </div>
+            <div class="issue-icon-btn" data-issue="product-size" onclick="selectIssue(this)">
+              <div class="icon-img">📏</div><div class="icon-label">Product Size Mismatch</div>
+            </div>
+            <div class="issue-icon-btn" data-issue="stain-dirty" onclick="selectIssue(this)">
+              <div class="icon-img">💧</div><div class="icon-label">Stain/Dirty/Odor</div>
+            </div>
+            <div class="issue-icon-btn" data-issue="stitching" onclick="selectIssue(this)">
+              <div class="icon-img">🧵</div><div class="icon-label">Stitching Defect</div>
+            </div>
+            <div class="issue-icon-btn" data-issue="wrinkled" onclick="selectIssue(this)">
+              <div class="icon-img">👔</div><div class="icon-label">Wrinkled Product</div>
+            </div>
+            <div class="issue-icon-btn selected" data-issue="no-issues" onclick="selectIssue(this)">
+              <div class="icon-img" style="font-size:16px;font-weight:700;">No<br>Issues</div><div class="icon-label">No Issues</div>
+            </div>
+            <div class="issue-icon-btn" data-issue="defective" onclick="selectIssue(this)">
+              <div class="icon-img">⚠️</div><div class="icon-label">Defective</div>
+            </div>
+          </div>
+
+          <!-- Extra icons for brand-tag-not-available flow -->
+          <div class="issue-icons-grid hidden" id="extra-issue-icons">
+            <div class="issue-icon-btn" data-issue="tag-mismatch" onclick="selectIssue(this)">
+              <div class="icon-img">🏷️</div><div class="icon-label">Tag Mismatch</div>
+            </div>
+            <div class="issue-icon-btn" data-issue="sod-product" onclick="selectIssue(this)">
+              <div class="icon-img">📋</div><div class="icon-label">SMM product</div>
+            </div>
+            <div class="issue-icon-btn" data-issue="sod-size" onclick="selectIssue(this)">
+              <div class="icon-img">📐</div><div class="icon-label">SMM size</div>
+            </div>
+            <div class="issue-icon-btn" data-issue="bt-shaded" onclick="selectIssue(this)">
+              <div class="icon-img">🏷️</div><div class="icon-label">BT Shaded/Damaged</div>
+            </div>
+          </div>
+
+          <div class="scan-qc-section">
+            <div class="barcode-visual">▐▌▐▌▐▐▌▐▌▐</div>
+            <p>Scan QC Code</p>
+            <div class="gtin-scan-field" style="margin-top:8px">
+              <input type="text" id="scan-qc-input" placeholder="Scan QC Code" onkeypress="handleQcScan(event)">
+            </div>
+          </div>
+        </div>
+
+        <!-- QC Result Panel -->
+        <div id="qc-result-panel" class="hidden">
+          <div class="qc-result-panel">
+            <div class="result-status" id="result-status-display">✅ Marked As QC Pass</div>
+            <div class="print-barcode-btn" onclick="showBarcodePage()">
+              <div class="printer-icon">🖨️</div>
+              <div class="print-label">PRINT ITEM BARCODE</div>
+            </div>
+            <div class="keep-in-carton">
+              <div class="printer-icon-small">🖨️</div>
+              <div class="label">Keep item in</div>
+              <div class="carton-name" id="assigned-carton-name">QC Pass Carton</div>
+            </div>
+            <div class="scan-item-barcode">
+              <div class="qc-scan-field">
+                <span class="barcode-icon">📊</span>
+                <input type="text" id="scan-item-barcode-input" placeholder="Scan/Type Item Barcode" onkeypress="handleItemBarcodeScan(event)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== WAREHOUSE MODAL =============== -->
+  <div class="modal-overlay" id="warehouse-modal">
+    <div class="modal">
+      <h3>Select Warehouse and Desk</h3>
+      <div class="modal-field">
+        <label>SELECT WAREHOUSE<span class="required">*</span></label>
+        <select id="warehouse-select">
+          <option value="">Search Warehouse</option>
+          <option value="bilaspur">Bilaspur RPC</option>
+          <option value="mumbai">Mumbai RPC</option>
+          <option value="delhi">Delhi RPC</option>
+          <option value="bangalore">Bangalore RPC</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>ENTER DESKCODE<span class="required">*</span></label>
+        <input type="text" id="deskcode-input" placeholder="" value="BILSQCPR-1-1-1-142">
+      </div>
+      <div class="radio-group">
+        <label><input type="radio" name="desk-type" value="RETURN" checked> RETURN</label>
+        <label><input type="radio" name="desk-type" value="RTO"> RTO</label>
+        <label><input type="radio" name="desk-type" value="EXTERNAL"> EXTERNAL</label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeWarehouseModal()">CANCEL</button>
+        <button class="btn-proceed" id="btn-proceed-warehouse" onclick="proceedWarehouse()">PROCEED</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== OUTPUT CARTON MODAL =============== -->
+  <div class="modal-overlay" id="output-carton-modal">
+    <div class="modal output-carton-modal">
+      <h3>Add Output Cartons</h3>
+      <div class="modal-banner" id="output-modal-banner">
+        <span class="banner-text"><span class="banner-icon"></span> <span id="output-banner-msg"></span></span>
+        <button class="banner-close" onclick="closeOutputBanner()">✕</button>
+      </div>
+      <div class="carton-grid">
+        <div class="carton-field">
+          <label>QC Pass Carton (STN) <span id="pass-count">(0)</span></label>
+          <div class="carton-scan">
+            <span>📊</span>
+            <input type="text" id="qc-pass-carton" placeholder="Scan QC Pass STN Carton" onkeypress="handleOutputCartonScan(event, 'pass')">
+          </div>
+          <div class="close-carton hidden" id="close-pass-carton" onclick="closeOutputCarton('pass')">CLOSE CARTON</div>
+        </div>
+        <div class="carton-field">
+          <label>Refinish Carton <span id="refinish-count"></span></label>
+          <div class="carton-scan">
+            <span>📊</span>
+            <input type="text" id="refinish-carton" placeholder="Scan Refinish Carton" onkeypress="handleOutputCartonScan(event, 'refinish')">
+          </div>
+          <div class="close-carton hidden" id="close-refinish-carton" onclick="closeOutputCarton('refinish')">CLOSE CARTON</div>
+        </div>
+        <div class="carton-field">
+          <label>QC Fail Carton (STN) <span id="fail-count"></span></label>
+          <div class="carton-scan">
+            <span>📊</span>
+            <input type="text" id="qc-fail-carton" placeholder="Scan QC Fail STN Carton" onkeypress="handleOutputCartonScan(event, 'fail')">
+          </div>
+          <div class="close-carton hidden" id="close-fail-carton" onclick="closeOutputCarton('fail')">CLOSE CARTON</div>
+        </div>
+        <div class="carton-field">
+          <label>On Hold Carton <span id="onhold-count"></span></label>
+          <div class="carton-scan">
+            <span>📊</span>
+            <input type="text" id="onhold-carton" placeholder="Scan On Hold Carton" onkeypress="handleOutputCartonScan(event, 'onhold')">
+          </div>
+          <div class="close-carton hidden" id="close-onhold-carton" onclick="closeOutputCarton('onhold')">CLOSE CARTON</div>
+        </div>
+        <div class="carton-field">
+          <label>QC Fail Carton (Non-STN) <span id="failnon-count"></span></label>
+          <div class="carton-scan">
+            <span>📊</span>
+            <input type="text" id="qc-fail-non-carton" placeholder="Scan QC Fail (Non-STN) Carton" onkeypress="handleOutputCartonScan(event, 'failnon')">
+          </div>
+          <div class="close-carton hidden" id="close-failnon-carton" onclick="closeOutputCarton('failnon')">CLOSE CARTON</div>
+        </div>
+      </div>
+      <button class="btn-update" onclick="updateOutputCartons()">UPDATE</button>
+    </div>
+  </div>
+
+  <!-- =============== BARCODE PRINT SCREEN =============== -->
+  <div id="barcode-screen" class="screen">
+    <div class="barcode-page">
+      <div class="sku-number">ICCDCLST1092796 <span style="font-size:64px">63</span></div>
+      <div class="barcode-img-container">
+        <svg id="print-barcode-svg"></svg>
+      </div>
+      <div class="size-info"><span>7-8 Y</span><span>7532361506</span></div>
+      <div class="id-info"><span>33819868</span><span>102694434314</span></div>
+    </div>
+    <button style="margin-top:24px;padding:12px 32px;background:#3f51b5;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:14px" onclick="closeBarcodePage()">← Back to Quality Check</button>
+  </div>
+
+  <!-- =============== IMAGE MODAL =============== -->
+  <div class="modal-overlay" id="image-modal" onclick="closeImageModal()">
+    <span class="modal-close" onclick="closeImageModal()">✕</span>
+    <button class="modal-nav-arrow left" onclick="event.stopPropagation(); modalPrevImage()">&#8249;</button>
+    <img class="modal-content-img" id="enlarged-img" onclick="event.stopPropagation()">
+    <button class="modal-nav-arrow right" onclick="event.stopPropagation(); modalNextImage()">&#8250;</button>
+  </div>
+
+  <!-- JsBarcode Library for actual barcode generation -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
