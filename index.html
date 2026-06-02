@@ -110,6 +110,9 @@
       <div class="top-nav-right">
         <span id="session-timer" style="background:#e8eaf6;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;margin-right:8px">⏱ 00:00</span>
         <span id="product-counter" style="background:#e8f5e9;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;margin-right:8px">0/50</span>
+        <!-- Sound & Language Controls -->
+        <button id="sound-toggle-btn" onclick="toggleSound()" title="Toggle Sound Feedback" style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:13px;font-weight:600;margin-right:4px;transition:all 0.2s">🔊 Sound</button>
+        <button id="lang-toggle-btn" onclick="toggleLanguage()" title="Switch Language" style="background:#e3f2fd;border:1px solid #90caf9;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:13px;font-weight:600;margin-right:8px;transition:all 0.2s">🌐 EN</button>
         <span class="user-icon">👤</span>
         <span id="nav-user-email">ca.3450435@myntra.com</span>
         <button onclick="doLogout()" style="margin-left:8px;background:none;border:1px solid #ddd;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px">Logout</button>
@@ -575,6 +578,24 @@
             </div>
             <div class="issue-icon-btn" data-issue="bt-shaded" onclick="selectIssue(this)">
               <div class="icon-img">🏷️</div><div class="icon-label">BT Shaded/Damaged</div>
+            </div>
+          </div>
+
+          <!-- Wrong Answer Feedback Panel -->
+          <div id="wrong-answer-panel" style="display:none;margin:8px 0 4px 0">
+            <div id="wrong-answer-warning" style="display:none;background:#fff3e0;border:1.5px solid #ff9800;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:#e65100;animation:wrongShake 0.4s ease">
+              ⚠️ <span id="wrong-warning-text">You have selected the wrong option!</span>
+            </div>
+            <div id="wrong-answer-hint" style="display:none;background:#fce4ec;border:1.5px solid #e91e63;border-radius:8px;padding:10px 14px;margin-top:6px;font-size:13px;color:#880e4f">
+              💡 <strong id="wrong-hint-label">Correct Answer:</strong><br>
+              <span id="wrong-hint-text"></span>
+            </div>
+          </div>
+
+          <!-- Correct Answer Feedback Panel -->
+          <div id="correct-answer-panel" style="display:none;margin:8px 0 4px 0">
+            <div id="correct-answer-banner" style="background:#e8f5e9;border:1.5px solid #43a047;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:#1b5e20;animation:correctPop 0.35s ease">
+              ✅ <span id="correct-banner-text">Correct answer! Well done.</span>
             </div>
           </div>
 

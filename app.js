@@ -20,7 +20,11 @@ const state = {
   timerInterval: null,
   // Image gallery state
   galleryImages: [],
-  galleryIndex: 0
+  galleryIndex: 0,
+  // Sound / feedback state
+  soundEnabled: true,
+  soundLanguage: 'en',   // 'en' or 'hi'
+  wrongAttempts: 0       // resets per product
 };
 
 // ===== DATE FORMATTER =====
@@ -45,6 +49,383 @@ function formatDuration(seconds) {
   const s = Math.round(seconds % 60);
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
+}
+
+// ===== SOUND & TTS SYSTEM =====
+
+// Issue key → human-readable label mapping
+const ISSUE_LABELS = {
+  'no-issues':     { en: 'No Issues',               hi: 'No Issues' },   // keep English — term is universal
+  'missing-part':  { en: 'Missing Part',             hi: 'हिस्सा गायब है' },
+  'defective':     { en: 'Defective',                hi: 'खराब उत्पाद' },
+  'pattern-shade': { en: 'Pattern/Shade Mismatch',   hi: 'पैटर्न या रंग मेल नहीं' },
+  'stain-dirty':   { en: 'Stain/Dirty/Odor',         hi: 'दाग, गंदगी या बदबू' },
+  'stitching':     { en: 'Stitching Defect',         hi: 'सिलाई में खराबी' },
+  'wrinkled':      { en: 'Wrinkled Product',         hi: 'सिकुड़ा हुआ उत्पाद' },
+  'sod-product':   { en: 'SMM Product',              hi: 'SMM उत्पाद' },
+  'sod-size':      { en: 'SMM Size',                 hi: 'SMM साइज' },
+  'product-size':  { en: 'Product Size Mismatch',    hi: 'साइज मेल नहीं' },
+  'tag-mismatch':  { en: 'Tag Mismatch',             hi: 'टैग मेल नहीं' },
+  'bt-shaded':     { en: 'BT Shaded/Damaged',        hi: 'ब्रांड टैग खराब' },
+  'wrong-product': { en: 'Wrong Product Received',   hi: 'गलत उत्पाद मिला' },
+  'damaged':       { en: 'Damaged/Cut/Torn',         hi: 'क्षतिग्रस्त उत्पाद' },
+  'fake':          { en: 'Fake/Garbage Product',     hi: 'नकली या बेकार उत्पाद' },
+  'return-not-received': { en: 'Return Not Received', hi: 'रिटर्न नहीं मिला' }
+};
+
+function getIssueLabel(issueKey, lang) {
+  const entry = ISSUE_LABELS[issueKey];
+  if (!entry) return issueKey;
+  return entry[lang] || entry['en'];
+}
+
+// Play a short error beep using Web Audio API
+function playErrorBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(440, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.3);
+    gainNode.gain.setValueAtTime(0.6, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.4);
+  } catch (e) {
+    console.warn('Audio not supported:', e);
+  }
+}
+
+// ─── Audio file playback (ElevenLabs MP3s) ────────────────────────
+const AUDIO_BASE = '/static/audio';
+
+// Track currently playing audio so we can interrupt it
+let _currentAudio = null;
+
+/**
+ * Play a single pre-generated MP3 clip.
+ * Returns a Promise that resolves when the clip finishes (or fails).
+ */
+function playAudioClip(key) {
+  return new Promise(resolve => {
+    const audio = new Audio(`${AUDIO_BASE}/${key}.mp3`);
+    _currentAudio = audio;
+    audio.onended  = resolve;
+    // If file missing or network error → resolve silently (no crash)
+    audio.onerror  = resolve;
+    audio.play().catch(resolve);
+  });
+}
+
+/**
+ * Play several clips back-to-back (for stitching dynamic sentences).
+ */
+async function playAudioSequence(keys) {
+  if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+  for (const key of keys) {
+    await playAudioClip(key);
+  }
+}
+
+/**
+ * Fallback: browser Web Speech API (used when MP3 files don't exist yet).
+ */
+function speakTextFallback(text, lang) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang  = lang === 'hi' ? 'hi-IN' : 'en-IN';
+  utter.rate  = 0.92;
+  utter.pitch = 1.1;
+  const voices = window.speechSynthesis.getVoices();
+  const pref   = lang === 'hi' ? 'hi' : 'en';
+  const best   = voices.find(v =>
+    v.lang.startsWith(pref) && /natural|neural|online|aria|swara|female|google/i.test(v.name)
+  ) || voices.find(v => v.lang.startsWith(pref));
+  if (best) utter.voice = best;
+  window.speechSynthesis.speak(utter);
+}
+
+/**
+ * Check whether a clip file actually exists (HEAD request, cached).
+ */
+const _clipExists = {};
+async function clipExists(key) {
+  if (_clipExists[key] !== undefined) return _clipExists[key];
+  try {
+    const r = await fetch(`${AUDIO_BASE}/${key}.mp3`, { method: 'HEAD' });
+    _clipExists[key] = r.ok;
+  } catch { _clipExists[key] = false; }
+  return _clipExists[key];
+}
+
+/**
+ * Map carton display name → audio clip key.
+ */
+const CARTON_KEY_MAP = {
+  'QC Pass Carton (STN)':      'carton_pass',
+  'QC Fail Carton (STN)':      'carton_fail',
+  'QC Fail Carton (Non-STN)':  'carton_failnon',
+  'Refinish Carton':           'carton_refinish',
+  'On Hold Carton':            'carton_onhold',
+};
+
+
+// Build wrong-answer speech: use MP3 clips if available, else Web Speech
+async function speakWrongAnswer(attempt, product, lang) {
+  const hasExpected = product && product.expected_qc_result;
+
+  if (attempt === 1) {
+    // ── 1st wrong: single clip ──────────────────────────────
+    const key = `wrong_1_${lang}`;
+    if (await clipExists(key)) {
+      await playAudioSequence([key]);
+    } else {
+      const msg = lang === 'hi'
+        ? 'आपने गलत विकल्प चुना है। कृपया दोबारा जाँचें।'
+        : 'You have selected the wrong option. Please check again.';
+      speakTextFallback(msg, lang);
+    }
+  } else {
+    // ── 2nd+ wrong: stitched clips (prefix + carton + issue) ─
+    if (hasExpected) {
+      const assignment    = getAssignedCarton(product.expected_issue || 'no-issues', null, product);
+      const cartonDisplay = assignment.carton;
+      const issueKey      = product.expected_issue || 'no-issues';
+      const cartonFileKey = CARTON_KEY_MAP[cartonDisplay] || 'carton_pass';
+
+      const prefixKey  = `wrong_2_prefix_${lang}`;
+      const cConnKey   = `connector_carton_${lang}`;
+      const cartonKey  = `${cartonFileKey}_${lang}`;
+      const iConnKey   = `connector_issue_${lang}`;
+      // For 'no-issues', always use the English clip — term is universal
+      const issueAudioLang = (issueKey === 'no-issues') ? 'en' : lang;
+      const issueAKey  = `issue_${issueKey}_${issueAudioLang}`;
+
+      const allExist = await Promise.all(
+        [prefixKey, cConnKey, cartonKey, iConnKey, issueAKey].map(clipExists)
+      );
+
+      if (allExist.every(Boolean)) {
+        await playAudioSequence([prefixKey, cConnKey, cartonKey, iConnKey, issueAKey]);
+      } else {
+        // Fallback: speak the full sentence via Web Speech
+        const correctIssue  = getIssueLabel(issueKey, lang);
+        const msg = lang === 'hi'
+          ? `फिर गलत। सही जवाब है: कार्टन — ${cartonDisplay}, समस्या — ${correctIssue}।`
+          : `Wrong again. The correct answer is: Carton — ${cartonDisplay}, Issue — ${correctIssue}.`;
+        speakTextFallback(msg, lang);
+      }
+    } else {
+      // No expected answer → simple fallback
+      const msg = lang === 'hi' ? 'फिर गलत विकल्प चुना।' : 'You have selected the wrong option again.';
+      const key = `wrong_1_${lang}`;
+      if (await clipExists(key)) { await playAudioSequence([key]); }
+      else { speakTextFallback(msg, lang); }
+    }
+  }
+}
+
+
+// Show the wrong-answer UI panel
+function showWrongAnswerUI(attempt, product, lang) {
+  const panel       = document.getElementById('wrong-answer-panel');
+  const warningDiv  = document.getElementById('wrong-answer-warning');
+  const hintDiv     = document.getElementById('wrong-answer-hint');
+  const warnText    = document.getElementById('wrong-warning-text');
+  const hintLabel   = document.getElementById('wrong-hint-label');
+  const hintText    = document.getElementById('wrong-hint-text');
+
+  panel.style.display = 'block';
+
+  if (lang === 'hi') {
+    warnText.textContent  = 'आपने गलत विकल्प चुना है! कृपया दोबारा जांचें।';
+    hintLabel.textContent = 'सही जवाब:';
+  } else {
+    warnText.textContent  = 'You have selected the wrong option! Please check again.';
+    hintLabel.textContent = 'Correct Answer:';
+  }
+
+  warningDiv.style.display = 'block';
+  // Trigger re-animation
+  warningDiv.style.animation = 'none';
+  setTimeout(() => { warningDiv.style.animation = 'wrongShake 0.45s ease'; }, 10);
+
+  const hasExpected = product && product.expected_qc_result;
+  if (attempt >= 2 && hasExpected) {
+    const correctCarton = getAssignedCarton(product.expected_issue || 'no-issues', null, product).carton;
+    const correctIssue  = getIssueLabel(product.expected_issue || 'no-issues', lang);
+    if (lang === 'hi') {
+      hintText.innerHTML = `कार्टन: <strong>${correctCarton}</strong><br>समस्या: <strong>${correctIssue}</strong>`;
+    } else {
+      hintText.innerHTML = `Carton: <strong>${correctCarton}</strong><br>Issue: <strong>${correctIssue}</strong>`;
+    }
+    hintDiv.style.display = 'block';
+  } else {
+    hintDiv.style.display = 'none';
+  }
+}
+
+function hideWrongAnswerUI() {
+  const panel = document.getElementById('wrong-answer-panel');
+  if (panel) panel.style.display = 'none';
+  const hintDiv = document.getElementById('wrong-answer-hint');
+  if (hintDiv) hintDiv.style.display = 'none';
+  hideCorrectAnswerUI();
+}
+
+function showCorrectAnswerUI(lang) {
+  const panel      = document.getElementById('correct-answer-panel');
+  const banner     = document.getElementById('correct-answer-banner');
+  const bannerText = document.getElementById('correct-banner-text');
+  if (!panel) return;
+
+  bannerText.textContent = lang === 'hi'
+    ? 'सही जवाब! बहुत अच्छे।'
+    : 'Correct answer! Well done.';
+
+  panel.style.display = 'block';
+  // Re-trigger animation
+  banner.style.animation = 'none';
+  setTimeout(() => { banner.style.animation = 'correctPop 0.35s ease'; }, 10);
+}
+
+function hideCorrectAnswerUI() {
+  const panel = document.getElementById('correct-answer-panel');
+  if (panel) panel.style.display = 'none';
+}
+
+// Main orchestrator for wrong answer: beep + stitched audio + UI
+function handleWrongAnswer(product) {
+  state.wrongAttempts++;
+  const lang = state.soundLanguage;
+  if (state.soundEnabled) {
+    playErrorBeep();
+    // Small delay so beep finishes before voice starts
+    setTimeout(() => speakWrongAnswer(state.wrongAttempts, product, lang), 450);
+  }
+  showWrongAnswerUI(state.wrongAttempts, product, lang);
+  // Clear QC input so operator can retry
+  const qcInput = document.getElementById('scan-qc-input');
+  if (qcInput) { qcInput.value = ''; qcInput.focus(); }
+}
+
+// Play a pleasant ascending success chime
+function playSuccessBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // First note: rising tone
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.connect(gain1); gain1.connect(ctx.destination);
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(523, ctx.currentTime);           // C5
+    osc1.frequency.exponentialRampToValueAtTime(659, ctx.currentTime + 0.15); // E5
+    gain1.gain.setValueAtTime(0.5, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.25);
+    // Second note: higher, brighter
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2); gain2.connect(ctx.destination);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(784, ctx.currentTime + 0.18);   // G5
+    osc2.frequency.exponentialRampToValueAtTime(1047, ctx.currentTime + 0.4); // C6
+    gain2.gain.setValueAtTime(0.0, ctx.currentTime + 0.18);
+    gain2.gain.linearRampToValueAtTime(0.45, ctx.currentTime + 0.25);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc2.start(ctx.currentTime + 0.18);
+    osc2.stop(ctx.currentTime + 0.5);
+  } catch (e) {
+    console.warn('Audio not supported:', e);
+  }
+}
+
+// Main orchestrator for correct answer: success beep + stitched audio
+async function handleCorrectAnswer(product) {
+  if (!state.soundEnabled) return;
+  const lang = state.soundLanguage;
+  playSuccessBeep();
+  const key = `correct_${lang}`;
+  setTimeout(async () => {
+    if (await clipExists(key)) {
+      await playAudioSequence([key]);
+    } else {
+      const msg = lang === 'hi' ? 'सही जवाब! बहुत अच्छे।' : 'Correct answer! Well done.';
+      speakTextFallback(msg, lang);
+    }
+  }, 400);
+  showCorrectAnswerUI(lang);
+}
+
+// Toggle sound ON/OFF
+function toggleSound() {
+  state.soundEnabled = !state.soundEnabled;
+  localStorage.setItem('pv_sound_enabled', state.soundEnabled ? '1' : '0');
+  const btn = document.getElementById('sound-toggle-btn');
+  if (btn) {
+    if (state.soundEnabled) {
+      btn.textContent = '🔊 Sound';
+      btn.style.background = '#f3e5f5';
+      btn.style.borderColor = '#ce93d8';
+      btn.style.opacity = '1';
+    } else {
+      btn.textContent = '🔇 Sound';
+      btn.style.background = '#f5f5f5';
+      btn.style.borderColor = '#bbb';
+      btn.style.opacity = '0.65';
+    }
+  }
+}
+
+// Toggle language EN ↔ HI
+function toggleLanguage() {
+  state.soundLanguage = state.soundLanguage === 'en' ? 'hi' : 'en';
+  localStorage.setItem('pv_sound_language', state.soundLanguage);
+  const btn = document.getElementById('lang-toggle-btn');
+  if (btn) {
+    btn.textContent = state.soundLanguage === 'hi' ? '🌐 HI' : '🌐 EN';
+  }
+  // Update any visible wrong-answer panel to new language
+  const panel = document.getElementById('wrong-answer-panel');
+  if (panel && panel.style.display !== 'none') {
+    showWrongAnswerUI(state.wrongAttempts, state.currentProduct, state.soundLanguage);
+  }
+}
+
+// Load sound preferences from localStorage
+function loadSoundPrefs() {
+  const savedEnabled = localStorage.getItem('pv_sound_enabled');
+  const savedLang    = localStorage.getItem('pv_sound_language');
+  if (savedEnabled !== null) {
+    state.soundEnabled = savedEnabled === '1';
+  }
+  if (savedLang) {
+    state.soundLanguage = savedLang;
+  }
+  // Sync buttons
+  const soundBtn = document.getElementById('sound-toggle-btn');
+  const langBtn  = document.getElementById('lang-toggle-btn');
+  if (soundBtn) {
+    if (state.soundEnabled) {
+      soundBtn.textContent = '🔊 Sound';
+      soundBtn.style.background = '#f3e5f5';
+      soundBtn.style.borderColor = '#ce93d8';
+      soundBtn.style.opacity = '1';
+    } else {
+      soundBtn.textContent = '🔇 Sound';
+      soundBtn.style.background = '#f5f5f5';
+      soundBtn.style.borderColor = '#bbb';
+      soundBtn.style.opacity = '0.65';
+    }
+  }
+  if (langBtn) {
+    langBtn.textContent = state.soundLanguage === 'hi' ? '🌐 HI' : '🌐 EN';
+  }
 }
 
 // ===== SCREEN NAVIGATION =====
@@ -705,6 +1086,10 @@ async function handleTrackingScan(event) {
   if (!trackingId) return;
   state.trackingId = trackingId;
 
+  // Reset wrong-answer state for new product
+  state.wrongAttempts = 0;
+  hideWrongAnswerUI();
+
   // Look up product by Tracking ID
   try {
     const skuRes = await fetch(API + '/api/product/by-tracking-id/' + encodeURIComponent(trackingId));
@@ -753,6 +1138,15 @@ async function handleTrackingScan(event) {
 }
 
 function populateProduct(p) {
+  // Normalize expected issue names from database to match UI keys
+  const issueMap = {
+    'missing-brand-tag': 'tag-mismatch',
+    'ip': 'missing-part'
+  };
+  if (p.expected_issue && issueMap[p.expected_issue]) {
+    p.expected_issue = issueMap[p.expected_issue];
+  }
+
   // Set up image gallery with 3 images
   const getImageUrl = (img) => img && img.startsWith('http') ? img : '/static/products/' + img;
   state.galleryImages = [
@@ -922,9 +1316,11 @@ function selectIssue(btn) {
 }
 
 // ===== CARTON MAPPING LOGIC =====
-function getAssignedCarton(issue, radioValue) {
-  // Check brand tag eligibility from current product
-  const isEligible = state.currentProduct && state.currentProduct.eligible_brand_tag === 1;
+// Now accepts optional productObj to read eligible_brand_tag directly (avoids relying on state)
+function getAssignedCarton(issue, radioValue, productObj) {
+  // Check brand tag eligibility from provided productObj or current product in state
+  const prod = productObj || state.currentProduct;
+  const isEligible = prod && prod.eligible_brand_tag === 1;
 
   // Radio button selections (wrong product, damaged, fake) → QC Fail
   if (radioValue === 'wrong-product' || radioValue === 'damaged' || radioValue === 'fake') {
@@ -980,6 +1376,36 @@ async function handleQcScan(event) {
 
   // Determine carton assignment
   const assignment = getAssignedCarton(state.selectedIssue, radioValue);
+
+  // ===== WRONG ANSWER CHECK =====
+  const product = state.currentProduct;
+  const expectedQc    = product && product.expected_qc_result;
+  const expectedIssue = product && (product.expected_issue || 'no-issues');
+
+  if (expectedQc) {
+    // Determine what operator actually selected for qcResult
+    const operatorQcResult  = assignment.qcResult;
+    const operatorIssue     = radioValue || state.selectedIssue;
+
+    const isWrong = operatorQcResult !== expectedQc || operatorIssue !== expectedIssue;
+    if (isWrong) {
+      handleWrongAnswer(product);
+      return;  // Block advancement — let operator retry
+    }
+  } else {
+    // No expected answer: still play beep if sound enabled (but no hint)
+    // We can't judge correctness, so just proceed normally
+  }
+
+  // ===== CORRECT (or no expected answer) — proceed normally =====
+  hideWrongAnswerUI();
+  state.wrongAttempts = 0;
+
+  // Play success sound only when we were actually checking (expected answer existed)
+  if (expectedQc) {
+    handleCorrectAnswer(product);
+  }
+
   state.qcResult = assignment.qcResult;
   const assignedCarton = assignment.carton;
 
@@ -1100,30 +1526,111 @@ async function handleItemBarcodeScan(event) {
     if (cntEl) cntEl.textContent = `(${state.outputCartonCounts[type]})`;
   }
 
-  showBanner('success', 'Item processed! Ready for next item.');
-  // Reset UI for next product
-  document.getElementById('product-area').classList.add('hidden');
-  document.getElementById('right-panel').classList.remove('show');
-  document.getElementById('qc-result-panel').classList.add('hidden');
+  // Reset UI elements that persist
   document.getElementById('qc-pass-badge-top').classList.add('hidden');
   document.getElementById('extra-issue-icons').classList.add('hidden');
-  ['scan-tracking-input','scan-return-input','scan-gtin-input','scan-qc-input'].forEach(id => {
+  ['scan-return-input','scan-gtin-input','scan-qc-input'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
   input.value = '';
-  state.currentProduct = null; state.currentLogId = null;
   state.gtinScanned = false; state.brandTagNA = false;
   state.galleryImages = []; state.galleryIndex = 0;
   state.qcResult = ''; state.selectedIssue = 'no-issues';
-  state.step = 3;
-  saveState();
-  setTimeout(() => document.getElementById('scan-tracking-input').focus(), 300);
+
+  // Automatically fetch the NEXT product in the queue
+  try {
+    const nextRes = await fetch(API + '/api/product/next');
+    const nextData = await nextRes.json();
+
+    if (!nextData.product) {
+      showBanner('success', 'All products processed! Great job.');
+      // Reset fully
+      document.getElementById('product-area').classList.add('hidden');
+      document.getElementById('right-panel').classList.remove('show');
+      document.getElementById('qc-result-panel').classList.add('hidden');
+      const trkInput = document.getElementById('scan-tracking-input');
+      if (trkInput) { trkInput.value = ''; setTimeout(() => trkInput.focus(), 300); }
+      state.currentProduct = null; state.currentLogId = null;
+      state.step = 3;
+      saveState();
+      return;
+    }
+
+    // Start PV tracking for the new product
+    const pvRes = await fetch(API + '/api/pv/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: nextData.product.id })
+    });
+    const pvData = await pvRes.json();
+
+    // Set up the state for the new product
+    state.currentProduct = nextData.product;
+    state.trackingId = nextData.product.tracking_id;
+    state.productsDone = nextData.products_done || 0;
+    state.totalProducts = nextData.total_products || 150;
+    state.currentLogId = pvData.log_id;
+    state.productStartTime = Date.now();
+    state.wrongAttempts = 0;
+
+    updateProductCounter();
+    hideWrongAnswerUI();
+    populateProduct(nextData.product);
+
+    showBanner('success', 'Item processed! Next item loaded automatically.');
+
+    // Update Tracking ID input visually
+    const trkInput = document.getElementById('scan-tracking-input');
+    if (trkInput) trkInput.value = state.trackingId;
+
+    state.step = 5;
+    document.getElementById('product-area').classList.remove('hidden');
+    document.getElementById('right-panel').classList.add('show');
+    document.getElementById('gtin-panel').classList.remove('hidden');
+    document.getElementById('other-checks-panel').classList.add('hidden');
+    document.getElementById('qc-result-panel').classList.add('hidden');
+    saveState();
+
+    // Focus GTIN input for the new product
+    setTimeout(() => document.getElementById('scan-gtin-input').focus(), 500);
+
+  } catch (e) {
+    showBanner('error', 'Error fetching next product automatically.');
+  }
 }
 
 // ===== INIT =====
+// Pre-warm the audio clip existence cache so first playback has zero delay
+async function prewarmAudioCache() {
+  // Fixed clips that are always needed — check these eagerly
+  const fixedKeys = [
+    'wrong_1_en', 'wrong_1_hi',
+    'correct_en',  'correct_hi',
+    'wrong_2_prefix_en', 'wrong_2_prefix_hi',
+    'connector_carton_en', 'connector_carton_hi',
+    'connector_issue_en',  'connector_issue_hi',
+  ];
+  const results = await Promise.all(fixedKeys.map(k => clipExists(k)));
+  const loaded  = fixedKeys.filter((k, i) => results[i]);
+  const missing = fixedKeys.filter((k, i) => !results[i]);
+  if (loaded.length)  console.log(`🔊 Audio clips ready (${loaded.length}/${fixedKeys.length}):`, loaded);
+  if (missing.length) console.warn('⚠️ Missing audio clips (will use Web Speech fallback):', missing);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('warehouse-select').value = 'bilaspur';
+
+  // Load sound/language preferences
+  loadSoundPrefs();
+
+  // Pre-warm audio file cache in background (no await — don't block UI)
+  prewarmAudioCache();
+
+  // Pre-load TTS voices (browsers need a trigger before listing)
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  }
 
   // Allow Enter key to submit login
   ['login-email', 'login-password'].forEach(id => {

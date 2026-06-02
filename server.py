@@ -9,7 +9,7 @@ import io
 from flask import Flask, request, jsonify, send_from_directory, session, Response
 from database import (
     init_db, create_user, create_users_bulk, verify_login, get_all_users,
-    get_product, get_product_by_tracking_id, get_all_products, get_product_count, get_next_product_for_user,
+    get_product, get_product_by_tracking_id, get_product_by_item_barcode, get_all_products, get_product_count, get_next_product_for_user,
     create_session, end_session,
     start_pv, complete_pv,
     get_user_stats, get_all_users_stats, get_user_pv_history,
@@ -217,6 +217,14 @@ def get_product_by_tracking_id_route(tracking_id):
     if product:
         return jsonify({'product': product})
     return jsonify({'error': 'Product not found for Tracking ID: ' + tracking_id}), 404
+
+@app.route('/api/product/by-item-barcode/<path:barcode>', methods=['GET'])
+def get_product_by_item_barcode_route(barcode):
+    """Look up a product by its Item Barcode."""
+    product = get_product_by_item_barcode(barcode.strip())
+    if product:
+        return jsonify({'product': product})
+    return jsonify({'error': 'Product not found for Item Barcode: ' + barcode}), 404
 
 # ===== PV TRACKING API =====
 

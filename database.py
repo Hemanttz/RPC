@@ -193,9 +193,26 @@ def get_product(product_id):
     return dict(product) if product else None
 
 def get_product_by_tracking_id(tracking_id):
-    """Get a single product by its Tracking ID."""
+    """Get a single product by its Tracking ID, including expected answer fields."""
     conn = get_db()
-    product = conn.execute('SELECT * FROM products WHERE tracking_id = ?', (tracking_id,)).fetchone()
+    product = conn.execute('''
+        SELECT p.*, ea.expected_qc_result, ea.expected_issue
+        FROM products p
+        LEFT JOIN product_expected_answers ea ON p.id = ea.product_id
+        WHERE p.tracking_id = ?
+    ''', (tracking_id,)).fetchone()
+    conn.close()
+    return dict(product) if product else None
+
+def get_product_by_item_barcode(barcode):
+    """Get a single product by its item barcode, including expected answer fields."""
+    conn = get_db()
+    product = conn.execute('''
+        SELECT p.*, ea.expected_qc_result, ea.expected_issue
+        FROM products p
+        LEFT JOIN product_expected_answers ea ON p.id = ea.product_id
+        WHERE p.item_barcode = ?
+    ''', (barcode,)).fetchone()
     conn.close()
     return dict(product) if product else None
 
